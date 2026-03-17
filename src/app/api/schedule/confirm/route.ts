@@ -14,6 +14,7 @@ import {
   computeNextSessionTime,
 } from "@/lib/google-calendar";
 import { z } from "zod";
+import { sendPairingConfirmation } from "@/lib/email";
 
 const PairingSchema = z.object({
   userA: z.object({
@@ -156,6 +157,37 @@ export async function POST(req: NextRequest) {
         calendarEventId,
         scheduledDate: startTime,
       });
+
+      // Send pairing confirmation emails (non-blocking)
+      const sessionDate = new Date(startTime).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const sessionTime = new Date(startTime).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      sendPairingConfirmation(interviewer.email, {
+        participantName: interviewer.name ?? "there",
+        partnerName: interviewee.name ?? interviewee.email,
+        role: "INTERVIEWER",
+        sessionDate,
+        sessionTime,
+        meetLink,
+      }).catch((e) => console.error("Email to interviewer failed:", e));
+
+      sendPairingConfirmation(interviewee.email, {
+        participantName: interviewee.name ?? "there",
+        partnerName: interviewer.name ?? interviewer.email,
+        role: "INTERVIEWEE",
+        sessionDate,
+        sessionTime,
+        meetLink,
+      }).catch((e) => console.error("Email to interviewee failed:", e));
     }
 
     // Update last run date

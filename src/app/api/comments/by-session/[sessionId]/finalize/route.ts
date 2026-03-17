@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendFeedbackFinalized } from "@/lib/email";
 
 export async function POST(
   _req: NextRequest,
@@ -63,6 +64,36 @@ export async function POST(
       where: { sessionId },
       data: { isFinalized: newState },
     });
+
+    // Send email notification when feedback is finalized (not un-finalized)
+    if (newState) {
+      const fullSession = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          interviewer: { select: { name: true, email: true } },
+          interviewee: { select: { name: true, email: true } },
+        },
+      });
+
+      if (fullSession?.interviewee) {
+        const sessionDate = fullSession.sessionDate
+          ? fullSession.sessionDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "your recent session";
+
+        const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3001";
+
+        sendFeedbackFinalized(fullSession.interviewee.email, {
+          intervieweeName: fullSession.interviewee.name ?? "there",
+          interviewerName: fullSession.interviewer?.name ?? "Your interviewer",
+          sessionDate,
+          feedbackUrl: `${baseUrl}/sessions/${sessionId}/feedback`,
+        }).catch((e) => console.error("Feedback email failed:", e));
+      }
+    }
 
     return NextResponse.json({
       finalized: newState,

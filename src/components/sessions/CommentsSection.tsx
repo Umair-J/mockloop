@@ -18,7 +18,7 @@ interface Comment {
   sectionLabel: string | null;
   isFinalized: boolean;
   createdAt: string;
-  author: { id: true; name: string | null };
+  author: { id: string; name: string | null };
 }
 
 interface CommentsSectionProps {

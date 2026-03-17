@@ -5,7 +5,19 @@ import { getCommonTimezones } from "@/lib/timezone";
 
 const TIMEZONES = getCommonTimezones();
 
+interface UserProfile {
+  name: string | null;
+  email: string;
+  timezone: string | null;
+  image: string | null;
+  avatarUrl: string | null;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export default function PreferencesPage() {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [timezone, setTimezone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,6 +34,7 @@ export default function PreferencesPage() {
         const res = await fetch("/api/me/preferences");
         if (res.ok) {
           const data = await res.json();
+          setProfile(data);
           setTimezone(data.timezone ?? "");
         }
       } catch {
@@ -69,12 +82,75 @@ export default function PreferencesPage() {
 
   const isCommon = TIMEZONES.some((tz) => tz.value === timezone);
 
+  const avatarSrc = profile?.image || profile?.avatarUrl;
+
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-[#1B3A5C] mb-1">Preferences</h1>
       <p className="text-gray-500 text-sm mb-6">
-        Set your timezone so session times display correctly for you.
+        Manage your profile and timezone settings.
       </p>
+
+      {/* Profile Card */}
+      {profile && (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={profile.name ?? "Avatar"}
+                className="h-14 w-14 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-[#1B3A5C] flex items-center justify-center text-white text-lg font-bold">
+                {(profile.name ?? profile.email)[0].toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-lg font-semibold text-gray-900">
+                {profile.name ?? "No name set"}
+              </p>
+              <p className="text-sm text-gray-500">{profile.email}</p>
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="text-gray-500">Role</dt>
+              <dd>
+                <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
+                  profile.role === "ADMIN"
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}>
+                  {profile.role}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Status</dt>
+              <dd className="font-medium">
+                <span className={`inline-flex items-center gap-1 ${
+                  profile.isActive ? "text-green-600" : "text-red-600"
+                }`}>
+                  <span className={`h-2 w-2 rounded-full ${
+                    profile.isActive ? "bg-green-500" : "bg-red-500"
+                  }`}></span>
+                  {profile.isActive ? "Active" : "Inactive"}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Member Since</dt>
+              <dd className="font-medium text-gray-900">
+                {new Date(profile.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric", month: "long", day: "numeric",
+                })}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       {message && (
         <div
@@ -171,3 +247,4 @@ export default function PreferencesPage() {
     </div>
   );
 }
+
