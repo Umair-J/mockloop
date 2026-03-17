@@ -5,14 +5,14 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 4 Complete
+## Last Updated: 2026-03-17 | After: Phase 5 Complete
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 4 complete → Starting Phase 5 (Scheduling) |
-| **Next Task** | Phase 5, Task 5.1: Schedule config API |
+| **Current Phase** | Phase 5 complete → Starting Phase 6 (Scheduling Automation) |
+| **Next Task** | Phase 6, Task 6.1: Schedule config CRUD |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
 | **Spec File** | `/Users/minahil/Downloads/mockapp.md` (source of truth) |
@@ -46,12 +46,17 @@
 | 4 | CommentForm component — category selector, timestamp, section label, edit mode | ✅ |
 | 4 | CommentsSection component — full management with finalize/un-finalize | ✅ |
 | 4 | Unified Feedback Report page (`/sessions/[id]/feedback`) — merged AI + human | ✅ |
+| 5 | Personal dashboard API (GET /api/dashboard/me) — scores, trends, strengths | ✅ |
+| 5 | Dashboard page with Recharts trend charts, empty state, stats cards | ✅ |
+| 5 | TrendChart, StrengthsCard, UpcomingSession components | ✅ |
+| 5 | Admin group dashboard API (GET /api/dashboard/group) | ✅ |
+| 5 | GroupOverview component — member grid with trends | ✅ |
 
 ### What's NOT Yet Configured
 
 | Item | What's Needed |
 |------|--------------|
-| Google OAuth | Real `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` in `.env` |
+| Google OAuth | ✅ Configured and working |
 | Google Drive | Service account JSON + folder ID in `.env` |
 | Anthropic API | ✅ Key saved to `.env` |
 | Sign-in flow | Can't test until OAuth credentials are set |
