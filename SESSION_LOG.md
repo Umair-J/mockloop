@@ -5,14 +5,14 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 6 Complete + Timezone Preferences
+## Last Updated: 2026-03-17 | After: Phase 7 Complete (Polish & Notifications)
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 6 complete (incl. user timezone preferences) → Ready for Phase 7 (Notifications & Polish) |
-| **Next Task** | Phase 7 or final testing/polish |
+| **Current Phase** | Phase 7 complete — All spec phases done. Ready for AI fine-tuning, recording workflow polish, and deployment |
+| **Next Task** | Fine-tune AI analysis, polish recording handling, then deploy |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
 | **Spec File** | `/Users/minahil/Downloads/mockapp.md` (source of truth) |
@@ -61,6 +61,12 @@
 | 6 | Schedule history page (`/admin/schedule/history`) — shows past rounds with status badges | ✅ |
 | 6 | Google Calendar scope added to OAuth (`calendar.events`, offline access, consent prompt) | ✅ |
 | 6 | OAuth tokens stored in JWT (accessToken, refreshToken) for Calendar API | ✅ |
+| 7 | Enhanced preferences page with full profile card (avatar, role, status, member since) | ✅ |
+| 7 | Email notification system (Resend SDK) — pairing confirmations + feedback finalized | ✅ |
+| 7 | Reusable UI components: LoadingSpinner, ErrorMessage, EmptyState, Toast | ✅ |
+| 7 | Loading states (loading.tsx) for all routes | ✅ |
+| 7 | Global error boundary (error.tsx) + custom 404 page | ✅ |
+| 7 | Code audit — fixed CommentsSection type bug, verified all pages have error handling | ✅ |
 
 ### What's NOT Yet Configured
 
@@ -70,6 +76,7 @@
 | Google Drive | Service account JSON + folder ID in `.env` |
 | Anthropic API | ✅ Key saved to `.env` |
 | Google Calendar | ✅ OAuth scope configured — tokens stored on sign-in |
+| Resend Email | Set `RESEND_API_KEY` and `EMAIL_FROM` in `.env` for real email delivery (logs to console without it) |
 | Task 2.6 | Python transcription script — skipped for now |
 
 ### Key Architecture Decisions (Deviations from Original Spec)
@@ -144,14 +151,20 @@ mockloop/
 │   │   ├── sessions/CommentsSection.tsx
 │   │   ├── sessions/ScoreCard.tsx
 │   │   ├── sessions/TranscriptViewer.tsx
-│   │   └── ui/Badge.tsx
+│   │   ├── ui/Badge.tsx
+│   │   ├── ui/LoadingSpinner.tsx
+│   │   ├── ui/ErrorMessage.tsx
+│   │   ├── ui/EmptyState.tsx
+│   │   └── ui/Toast.tsx
 │   ├── lib/
 │   │   ├── auth.ts + auth.config.ts
 │   │   ├── claude.ts
 │   │   ├── google-calendar.ts                 # Calendar event creation with Meet links
 │   │   ├── prisma.ts
 │   │   ├── scheduling.ts                      # Pairing algorithm
+│   │   ├── email.ts                          # Resend email notifications
 │   │   ├── google-drive.ts
+│   │   ├── timezone.ts                       # Common timezone list
 │   │   └── prompts/analysis-v1.ts
 │   ├── middleware.ts
 │   └── types/next-auth.d.ts
