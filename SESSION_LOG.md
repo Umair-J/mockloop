@@ -5,14 +5,14 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 5 Complete
+## Last Updated: 2026-03-17 | After: Phase 6 Complete
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 5 complete → Starting Phase 6 (Scheduling Automation) |
-| **Next Task** | Phase 6, Task 6.1: Schedule config CRUD |
+| **Current Phase** | Phase 6 complete → Ready for Phase 7 (Notifications & Polish) |
+| **Next Task** | Phase 7 or final testing/polish |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
 | **Spec File** | `/Users/minahil/Downloads/mockapp.md` (source of truth) |
@@ -24,7 +24,7 @@
 | 1 | Next.js 14 + TypeScript scaffold | ✅ |
 | 1 | Prisma v7 schema (13 models, 7 enums) | ✅ |
 | 1 | PostgreSQL local (Homebrew) + migrations | ✅ |
-| 1 | NextAuth v5 Google OAuth (split config for Edge) | ✅ Code written |
+| 1 | NextAuth v5 Google OAuth (split config for Edge) | ✅ Configured & working |
 | 1 | Role-based middleware (admin/user) | ✅ |
 | 1 | Sidebar navigation + responsive layout | ✅ |
 | 1 | Admin Members page (invite/manage) | ✅ |
@@ -51,6 +51,16 @@
 | 5 | TrendChart, StrengthsCard, UpcomingSession components | ✅ |
 | 5 | Admin group dashboard API (GET /api/dashboard/group) | ✅ |
 | 5 | GroupOverview component — member grid with trends | ✅ |
+| 6 | Schedule config CRUD API (GET/PUT `/api/schedule/config`) — admin only | ✅ |
+| 6 | Admin Schedule page with config form (cadence, day, time, duration, algorithm, timezone) | ✅ |
+| 6 | Pairing algorithm (`lib/scheduling.ts`) — round robin, role alternation, sit-out priority | ✅ |
+| 6 | Generate pairings API (`POST /api/schedule/generate`) — preview mode | ✅ |
+| 6 | Google Calendar integration (`lib/google-calendar.ts`) — events with Meet links | ✅ |
+| 6 | Confirm pairings API (`POST /api/schedule/confirm`) — creates Sessions + PairingHistory + Calendar events | ✅ |
+| 6 | Schedule history API (`GET /api/schedule/history`) — grouped by date | ✅ |
+| 6 | Schedule history page (`/admin/schedule/history`) — shows past rounds with status badges | ✅ |
+| 6 | Google Calendar scope added to OAuth (`calendar.events`, offline access, consent prompt) | ✅ |
+| 6 | OAuth tokens stored in JWT (accessToken, refreshToken) for Calendar API | ✅ |
 
 ### What's NOT Yet Configured
 
@@ -59,7 +69,7 @@
 | Google OAuth | ✅ Configured and working |
 | Google Drive | Service account JSON + folder ID in `.env` |
 | Anthropic API | ✅ Key saved to `.env` |
-| Sign-in flow | Can't test until OAuth credentials are set |
+| Google Calendar | ✅ OAuth scope configured — tokens stored on sign-in |
 | Task 2.6 | Python transcription script — skipped for now |
 
 ### Key Architecture Decisions (Deviations from Original Spec)
@@ -73,11 +83,13 @@
 7. **Analysis trigger** — Manual only (no auto-trigger on transcript complete), per user preference
 8. **Score display** — Both numeric (7.5/10) AND colored progress bars, per user preference
 9. **Finalization** — Reversible toggle (interviewer can un-finalize to edit, then re-finalize)
+10. **Timezone** — Configurable per schedule config (IANA timezone string), Google Calendar handles per-user display
+11. **Calendar scope** — Requested at first sign-in (`prompt: "consent"`, `access_type: "offline"`)
 
 ### Known Issues / Incomplete Items
 
-- OAuth not configured yet — can't test authenticated flows end-to-end
 - Docker compose file exists but Docker not installed (using local PostgreSQL)
+- Pre-existing TS type warnings in analysis/trigger route (Prisma JSON field typing) — does not affect runtime
 
 ### Coding Practices
 
@@ -96,7 +108,9 @@ mockloop/
 │   ├── app/
 │   │   ├── admin/
 │   │   │   ├── members/page.tsx
-│   │   │   └── recordings/page.tsx
+│   │   │   ├── recordings/page.tsx
+│   │   │   ├── schedule/page.tsx              # Schedule config + generate pairings
+│   │   │   └── schedule/history/page.tsx      # Past pairing rounds
 │   │   ├── api/
 │   │   │   ├── analysis/trigger/route.ts
 │   │   │   ├── analysis/[sessionId]/route.ts
@@ -105,6 +119,12 @@ mockloop/
 │   │   │   ├── comments/[id]/route.ts         # PUT, DELETE
 │   │   │   ├── comments/by-session/[sessionId]/route.ts     # GET list
 │   │   │   ├── comments/by-session/[sessionId]/finalize/    # POST toggle
+│   │   │   ├── dashboard/me/route.ts          # Personal dashboard
+│   │   │   ├── dashboard/group/route.ts       # Admin group dashboard
+│   │   │   ├── schedule/config/route.ts       # GET/PUT config
+│   │   │   ├── schedule/generate/route.ts     # POST generate pairings (preview)
+│   │   │   ├── schedule/confirm/route.ts      # POST confirm + create Calendar events
+│   │   │   ├── schedule/history/route.ts      # GET pairing history
 │   │   │   ├── sessions/route.ts
 │   │   │   ├── sessions/[id]/route.ts
 │   │   │   ├── transcripts/route.ts
@@ -117,6 +137,7 @@ mockloop/
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── layout/Sidebar.tsx + NavItem.tsx
+│   │   ├── dashboard/TrendChart.tsx + StrengthsCard.tsx + UpcomingSession.tsx + GroupOverview.tsx
 │   │   ├── sessions/AnalysisPanel.tsx
 │   │   ├── sessions/CommentForm.tsx
 │   │   ├── sessions/CommentsSection.tsx
@@ -126,7 +147,9 @@ mockloop/
 │   ├── lib/
 │   │   ├── auth.ts + auth.config.ts
 │   │   ├── claude.ts
+│   │   ├── google-calendar.ts                 # Calendar event creation with Meet links
 │   │   ├── prisma.ts
+│   │   ├── scheduling.ts                      # Pairing algorithm
 │   │   ├── google-drive.ts
 │   │   └── prompts/analysis-v1.ts
 │   ├── middleware.ts

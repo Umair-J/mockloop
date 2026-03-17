@@ -197,6 +197,7 @@ model ScheduleConfig {
   preferredTime          String           @default("10:00") @map("preferred_time") // HH:MM format
   sessionDurationMinutes Int              @default(60) @map("session_duration_minutes")
   pairingAlgorithm       PairingAlgorithm @default(ROUND_ROBIN) @map("pairing_algorithm")
+  timezone               String           @default("America/Los_Angeles")
   lastRunDate            DateTime?        @map("last_run_date")
   isActive               Boolean          @default(true) @map("is_active")
   createdAt              DateTime         @default(now()) @map("created_at")

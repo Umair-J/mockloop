@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         // First sign-in: look up or detect role
         const dbUser = await prisma.user.findUnique({
@@ -47,6 +47,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         token.id = dbUser?.id ?? user.id;
       }
+
+      // Store Google OAuth tokens for Calendar API access
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+      }
+
       return token;
     },
 
