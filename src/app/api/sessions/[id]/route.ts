@@ -60,6 +60,7 @@ export async function GET(
         role: session.user.role,
         isAdmin,
         isParticipant,
+        isInterviewer: interviewSession.interviewerId === session.user.id,
       },
     });
   } catch (error) {

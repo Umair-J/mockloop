@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import TranscriptViewer from "@/components/sessions/TranscriptViewer";
 import AnalysisPanel from "@/components/sessions/AnalysisPanel";
+import CommentsSection from "@/components/sessions/CommentsSection";
 
 interface SessionDetail {
   id: string;
@@ -46,6 +47,7 @@ interface SessionDetail {
     role: string;
     isAdmin: boolean;
     isParticipant: boolean;
+    isInterviewer: boolean;
   };
   comments: Array<{
     id: string;
@@ -224,38 +226,12 @@ export default function SessionDetailPage() {
         />
       </div>
 
-      {/* Comments placeholder (Phase 4) */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-700">
-            Interviewer Comments
-          </h2>
-        </div>
-        <div className="p-4">
-          {session.comments.length === 0 ? (
-            <div className="text-center text-gray-400 text-sm py-8">
-              No comments yet. Comments will be available in Phase 4.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {session.comments.map((c) => (
-                <div
-                  key={c.id}
-                  className="border border-gray-100 rounded-lg p-3"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-gray-700">
-                      {c.author.name ?? "Unknown"}
-                    </span>
-                    <Badge variant="default">{c.commentType}</Badge>
-                  </div>
-                  <p className="text-sm text-gray-600">{c.commentText}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Interviewer Comments */}
+      <CommentsSection
+        sessionId={session.id}
+        isInterviewer={session._viewer?.isInterviewer ?? false}
+        isAdmin={session._viewer?.isAdmin ?? false}
+      />
     </div>
   );
 }
