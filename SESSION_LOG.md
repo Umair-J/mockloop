@@ -5,14 +5,14 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 2 Complete
+## Last Updated: 2026-03-17 | After: Phase 3 Complete
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 2 complete → Starting Phase 3 (AI Analysis) |
-| **Next Task** | Phase 3, Task 3.1: Create analysis prompt templates |
+| **Current Phase** | Phase 3 complete → Starting Phase 4 (Interviewer Comments) |
+| **Next Task** | Phase 4, Task 4.1: Build comments API routes |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
 | **Spec File** | `/Users/minahil/Downloads/mockapp.md` (source of truth) |
@@ -34,6 +34,12 @@
 | 2 | Admin Recordings page | ✅ |
 | 2 | Sessions list + detail pages | ✅ |
 | 2 | TranscriptViewer component | ✅ |
+| 3 | Analysis prompt template (`analysis-v1.ts`) — 6 dimensions with rubric anchors | ✅ |
+| 3 | Claude SDK client (`claude.ts`) — exponential backoff, 3 retries | ✅ |
+| 3 | Manual analysis trigger API (`POST /api/analysis/trigger`) — admin only | ✅ |
+| 3 | Analysis retrieval API (`GET /api/analysis/[sessionId]`) | ✅ |
+| 3 | ScoreCard + AnalysisPanel components — scores, strengths, weaknesses, recommendations | ✅ |
+| 3 | Session Detail page updated with full AI analysis display | ✅ |
 
 ### What's NOT Yet Configured
 
@@ -41,7 +47,7 @@
 |------|--------------|
 | Google OAuth | Real `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` in `.env` |
 | Google Drive | Service account JSON + folder ID in `.env` |
-| Anthropic API | Key received from user — needs to be added to `.env` |
+| Anthropic API | ✅ Key saved to `.env` |
 | Sign-in flow | Can't test until OAuth credentials are set |
 | Task 2.6 | Python transcription script — skipped for now |
 
@@ -53,12 +59,14 @@
 4. **Comment API route** — Nested under `by-session/[sessionId]` to avoid route collision
 5. **Filename convention** — Uses `-at-` instead of `@` in recording filenames
 6. **Port** — Dev server on 3001 (3000 used by another project)
+7. **Analysis trigger** — Manual only (no auto-trigger on transcript complete), per user preference
+8. **Score display** — Both numeric (7.5/10) AND colored progress bars, per user preference
 
 ### Known Issues / Incomplete Items
 
-- Phase 2 code written but not yet verified through dev server compilation
 - `.gitkeep` files in empty route dirs (will be replaced as routes are built)
 - Docker compose file exists but Docker not installed (using local PostgreSQL)
+- OAuth not configured yet — can't test authenticated flows end-to-end
 
 ### Coding Practices
 
@@ -72,13 +80,15 @@
 ```
 mockloop/
 ├── prisma/
-│   └── schema.prisma          # 13 models, 7 enums
+│   └── schema.prisma              # 13 models, 7 enums
 ├── src/
 │   ├── app/
 │   │   ├── admin/
 │   │   │   ├── members/page.tsx
 │   │   │   └── recordings/page.tsx
 │   │   ├── api/
+│   │   │   ├── analysis/trigger/route.ts      # POST — manual trigger (admin)
+│   │   │   ├── analysis/[sessionId]/route.ts  # GET — fetch analysis
 │   │   │   ├── auth/[...nextauth]/route.ts
 │   │   │   ├── sessions/route.ts
 │   │   │   ├── sessions/[id]/route.ts
@@ -90,16 +100,20 @@ mockloop/
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── layout/Sidebar.tsx + NavItem.tsx
+│   │   ├── sessions/AnalysisPanel.tsx         # Full analysis display
+│   │   ├── sessions/ScoreCard.tsx             # Score with progress bar
 │   │   ├── sessions/TranscriptViewer.tsx
 │   │   └── ui/Badge.tsx
 │   ├── lib/
 │   │   ├── auth.ts + auth.config.ts
+│   │   ├── claude.ts                          # Anthropic SDK + retry
 │   │   ├── prisma.ts
-│   │   └── google-drive.ts
+│   │   ├── google-drive.ts
+│   │   └── prompts/analysis-v1.ts             # Versioned analysis prompt
 │   ├── middleware.ts
 │   └── types/next-auth.d.ts
 ├── .env.example
-├── SESSION_LOG.md              # ← This file
+├── SESSION_LOG.md                  # ← This file
 └── package.json
 ```
 
