@@ -5,14 +5,14 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 3 Complete
+## Last Updated: 2026-03-17 | After: Phase 4 Complete
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 3 complete → Starting Phase 4 (Interviewer Comments) |
-| **Next Task** | Phase 4, Task 4.1: Build comments API routes |
+| **Current Phase** | Phase 4 complete → Starting Phase 5 (Scheduling) |
+| **Next Task** | Phase 5, Task 5.1: Schedule config API |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
 | **Spec File** | `/Users/minahil/Downloads/mockapp.md` (source of truth) |
@@ -40,6 +40,12 @@
 | 3 | Analysis retrieval API (`GET /api/analysis/[sessionId]`) | ✅ |
 | 3 | ScoreCard + AnalysisPanel components — scores, strengths, weaknesses, recommendations | ✅ |
 | 3 | Session Detail page updated with full AI analysis display | ✅ |
+| 4 | Comment CRUD API (POST, PUT, DELETE) with finalization lock | ✅ |
+| 4 | Session-scoped comment list (GET) with visibility gating | ✅ |
+| 4 | Finalization toggle (POST .../finalize) — reversible lock/unlock | ✅ |
+| 4 | CommentForm component — category selector, timestamp, section label, edit mode | ✅ |
+| 4 | CommentsSection component — full management with finalize/un-finalize | ✅ |
+| 4 | Unified Feedback Report page (`/sessions/[id]/feedback`) — merged AI + human | ✅ |
 
 ### What's NOT Yet Configured
 
@@ -61,12 +67,12 @@
 6. **Port** — Dev server on 3001 (3000 used by another project)
 7. **Analysis trigger** — Manual only (no auto-trigger on transcript complete), per user preference
 8. **Score display** — Both numeric (7.5/10) AND colored progress bars, per user preference
+9. **Finalization** — Reversible toggle (interviewer can un-finalize to edit, then re-finalize)
 
 ### Known Issues / Incomplete Items
 
-- `.gitkeep` files in empty route dirs (will be replaced as routes are built)
-- Docker compose file exists but Docker not installed (using local PostgreSQL)
 - OAuth not configured yet — can't test authenticated flows end-to-end
+- Docker compose file exists but Docker not installed (using local PostgreSQL)
 
 ### Coding Practices
 
@@ -87,33 +93,41 @@ mockloop/
 │   │   │   ├── members/page.tsx
 │   │   │   └── recordings/page.tsx
 │   │   ├── api/
-│   │   │   ├── analysis/trigger/route.ts      # POST — manual trigger (admin)
-│   │   │   ├── analysis/[sessionId]/route.ts  # GET — fetch analysis
+│   │   │   ├── analysis/trigger/route.ts
+│   │   │   ├── analysis/[sessionId]/route.ts
 │   │   │   ├── auth/[...nextauth]/route.ts
+│   │   │   ├── comments/route.ts              # POST create
+│   │   │   ├── comments/[id]/route.ts         # PUT, DELETE
+│   │   │   ├── comments/by-session/[sessionId]/route.ts     # GET list
+│   │   │   ├── comments/by-session/[sessionId]/finalize/    # POST toggle
 │   │   │   ├── sessions/route.ts
 │   │   │   ├── sessions/[id]/route.ts
 │   │   │   ├── transcripts/route.ts
 │   │   │   └── users/route.ts + invite/route.ts
 │   │   ├── dashboard/page.tsx
-│   │   ├── sessions/page.tsx + [id]/page.tsx
+│   │   ├── sessions/page.tsx
+│   │   ├── sessions/[id]/page.tsx             # Session detail (transcript + analysis + comments)
+│   │   ├── sessions/[id]/feedback/page.tsx    # Unified feedback report
 │   │   ├── sign-in/page.tsx
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── layout/Sidebar.tsx + NavItem.tsx
-│   │   ├── sessions/AnalysisPanel.tsx         # Full analysis display
-│   │   ├── sessions/ScoreCard.tsx             # Score with progress bar
+│   │   ├── sessions/AnalysisPanel.tsx
+│   │   ├── sessions/CommentForm.tsx
+│   │   ├── sessions/CommentsSection.tsx
+│   │   ├── sessions/ScoreCard.tsx
 │   │   ├── sessions/TranscriptViewer.tsx
 │   │   └── ui/Badge.tsx
 │   ├── lib/
 │   │   ├── auth.ts + auth.config.ts
-│   │   ├── claude.ts                          # Anthropic SDK + retry
+│   │   ├── claude.ts
 │   │   ├── prisma.ts
 │   │   ├── google-drive.ts
-│   │   └── prompts/analysis-v1.ts             # Versioned analysis prompt
+│   │   └── prompts/analysis-v1.ts
 │   ├── middleware.ts
 │   └── types/next-auth.d.ts
 ├── .env.example
-├── SESSION_LOG.md                  # ← This file
+├── SESSION_LOG.md
 └── package.json
 ```
 
