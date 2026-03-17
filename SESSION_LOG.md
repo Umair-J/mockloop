@@ -5,13 +5,13 @@
 
 ---
 
-## Last Updated: 2026-03-17 | After: Phase 6 Complete
+## Last Updated: 2026-03-17 | After: Phase 6 Complete + Timezone Preferences
 
 ### Current Status
 
 | Item | Status |
 |------|--------|
-| **Current Phase** | Phase 6 complete → Ready for Phase 7 (Notifications & Polish) |
+| **Current Phase** | Phase 6 complete (incl. user timezone preferences) → Ready for Phase 7 (Notifications & Polish) |
 | **Next Task** | Phase 7 or final testing/polish |
 | **Dev Server** | Port 3001 (`npm run dev -- -p 3001`) |
 | **GitHub Repo** | https://github.com/Umair-J/mockloop (private) |
@@ -85,6 +85,7 @@
 9. **Finalization** — Reversible toggle (interviewer can un-finalize to edit, then re-finalize)
 10. **Timezone** — Configurable per schedule config (IANA timezone string), Google Calendar handles per-user display
 11. **Calendar scope** — Requested at first sign-in (`prompt: "consent"`, `access_type: "offline"`)
+12. **User timezone** — Each user has a `timezone` field on their profile. Pairing preview shows local times per user with ⚠️ warnings for late-night sessions. Schema designed to scale into availability windows (Option 3) later.
 
 ### Known Issues / Incomplete Items
 
