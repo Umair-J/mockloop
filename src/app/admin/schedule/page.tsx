@@ -2,10 +2,12 @@
 
 /**
  * Admin Schedule Page — Configure scheduling, generate pairings, confirm.
+ * Shows local times per user in pairing preview with unsociable-hour warnings.
  */
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { convertToLocalTime, isUnsociableHour } from "@/lib/timezone";
 
 interface ScheduleConfig {
   id: string;
@@ -18,20 +20,42 @@ interface ScheduleConfig {
   isActive: boolean;
 }
 
+interface UserInfo {
+  id: string;
+  name: string | null;
+  email: string;
+  timezone?: string | null;
+}
+
 interface ProposedPairing {
-  userA: { id: string; name: string | null; email: string };
-  userB: { id: string; name: string | null; email: string };
+  userA: UserInfo;
+  userB: UserInfo;
   roleA: string;
   roleB: string;
 }
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+interface SessionTime {
+  startTime: string;
+  endTime: string;
+  configTimezone: string;
+}
+
+const DAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 export default function AdminSchedulePage() {
   const [config, setConfig] = useState<ScheduleConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pairings, setPairings] = useState<ProposedPairing[] | null>(null);
+  const [sessionTime, setSessionTime] = useState<SessionTime | null>(null);
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -84,11 +108,13 @@ export default function AdminSchedulePage() {
     setGenerating(true);
     setMessage(null);
     setPairings(null);
+    setSessionTime(null);
     try {
       const res = await fetch("/api/schedule/generate", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setPairings(data.pairings);
+        setSessionTime(data.sessionTime ?? null);
       } else {
         const data = await res.json();
         setMessage(data.error || "Failed to generate pairings.");
@@ -116,6 +142,7 @@ export default function AdminSchedulePage() {
           `Confirmed! ${data.confirmed} sessions scheduled for ${data.scheduledDate?.split("T")[0] ?? "next session"}.`
         );
         setPairings(null);
+        setSessionTime(null);
         fetchConfig();
       } else {
         const data = await res.json();
@@ -126,6 +153,49 @@ export default function AdminSchedulePage() {
     } finally {
       setConfirming(false);
     }
+  }
+
+  // Check if any user in the pairings has an unsociable hour
+  function hasAnyUnsociableHour(): boolean {
+    if (!pairings || !sessionTime) return false;
+    return pairings.some(
+      (p) =>
+        (p.userA.timezone &&
+          isUnsociableHour(sessionTime.startTime, p.userA.timezone)) ||
+        (p.userB.timezone &&
+          isUnsociableHour(sessionTime.startTime, p.userB.timezone))
+    );
+  }
+
+  // Render local time info for a user
+  function renderLocalTime(user: UserInfo) {
+    if (!sessionTime) return null;
+
+    if (!user.timezone) {
+      return (
+        <span className="text-xs italic text-gray-400">
+          (timezone not set)
+        </span>
+      );
+    }
+
+    const localTime = convertToLocalTime(
+      sessionTime.startTime,
+      user.timezone
+    );
+    const unsociable = isUnsociableHour(
+      sessionTime.startTime,
+      user.timezone
+    );
+
+    return (
+      <span
+        className={`text-xs ${unsociable ? "text-amber-600 font-medium" : "text-gray-500"}`}
+      >
+        {unsociable && "⚠️ "}
+        {localTime}
+      </span>
+    );
   }
 
   if (loading) {
@@ -312,32 +382,71 @@ export default function AdminSchedulePage() {
       {/* Pairing preview */}
       {pairings && (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">
             Proposed Pairings ({pairings.length} pairs)
           </h2>
+
+          {/* Session time info */}
+          {sessionTime && (
+            <p className="text-xs text-gray-500 mb-3">
+              Scheduled:{" "}
+              {convertToLocalTime(
+                sessionTime.startTime,
+                sessionTime.configTimezone
+              )}{" "}
+              ({sessionTime.configTimezone})
+            </p>
+          )}
+
+          {/* Unsociable hour warning */}
+          {hasAnyUnsociableHour() && (
+            <div className="mb-4 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+              ⚠️ Some users may have this session outside comfortable hours (7
+              AM – 10 PM local time). Consider adjusting the schedule time.
+            </div>
+          )}
+
           <div className="space-y-3 mb-4">
             {pairings.map((p, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="p-3 bg-gray-50 rounded-lg"
               >
                 <div className="flex items-center gap-4">
-                  <div className="text-sm">
-                    <span className="font-medium text-gray-900">
-                      {p.userA.name ?? p.userA.email}
-                    </span>
-                    <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                      {p.roleA === "INTERVIEWER" ? "Interviewer" : "Interviewee"}
-                    </span>
+                  {/* User A */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-gray-900 truncate">
+                        {p.userA.name ?? p.userA.email}
+                      </span>
+                      <span className="shrink-0 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                        {p.roleA === "INTERVIEWER"
+                          ? "Interviewer"
+                          : "Interviewee"}
+                      </span>
+                    </div>
+                    <div className="mt-0.5">
+                      {renderLocalTime(p.userA)}
+                    </div>
                   </div>
-                  <span className="text-gray-400">↔</span>
-                  <div className="text-sm">
-                    <span className="font-medium text-gray-900">
-                      {p.userB.name ?? p.userB.email}
-                    </span>
-                    <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
-                      {p.roleB === "INTERVIEWER" ? "Interviewer" : "Interviewee"}
-                    </span>
+
+                  <span className="text-gray-400 shrink-0">↔</span>
+
+                  {/* User B */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-gray-900 truncate">
+                        {p.userB.name ?? p.userB.email}
+                      </span>
+                      <span className="shrink-0 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
+                        {p.roleB === "INTERVIEWER"
+                          ? "Interviewer"
+                          : "Interviewee"}
+                      </span>
+                    </div>
+                    <div className="mt-0.5">
+                      {renderLocalTime(p.userB)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -354,7 +463,10 @@ export default function AdminSchedulePage() {
                 : "Confirm & Create Calendar Events"}
             </button>
             <button
-              onClick={() => setPairings(null)}
+              onClick={() => {
+                setPairings(null);
+                setSessionTime(null);
+              }}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
             >
               Cancel

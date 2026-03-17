@@ -11,6 +11,7 @@ interface UserInfo {
   id: string;
   name: string | null;
   email: string;
+  timezone?: string | null;
 }
 
 interface PairingHistoryEntry {

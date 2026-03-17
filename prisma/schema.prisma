@@ -57,6 +57,7 @@ model User {
   avatarUrl String?  @map("avatar_url")
   role      UserRole @default(MEMBER)
   isActive  Boolean  @default(true) @map("is_active")
+  timezone  String?  // IANA timezone, e.g. "America/New_York"
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

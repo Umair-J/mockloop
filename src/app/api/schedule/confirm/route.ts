@@ -20,11 +20,13 @@ const PairingSchema = z.object({
     id: z.string(),
     name: z.string().nullable(),
     email: z.string(),
+    timezone: z.string().nullable().optional(),
   }),
   userB: z.object({
     id: z.string(),
     name: z.string().nullable(),
     email: z.string(),
+    timezone: z.string().nullable().optional(),
   }),
   roleA: z.enum(["INTERVIEWER", "INTERVIEWEE"]),
   roleB: z.enum(["INTERVIEWER", "INTERVIEWEE"]),

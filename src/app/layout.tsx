@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { auth } from "@/lib/auth";
 import Sidebar from "@/components/layout/Sidebar";
+import TimezonePrompt from "@/components/TimezonePrompt";
 
 export const metadata: Metadata = {
   title: "MockLoop",
@@ -27,7 +28,10 @@ export default async function RootLayout({
               userName={session.user.name}
               userRole={session.user.role}
             />
-            <main className="flex-1 lg:ml-64 p-6">{children}</main>
+            <main className="flex-1 lg:ml-64 p-6">
+              <TimezonePrompt />
+              {children}
+            </main>
           </div>
         ) : (
           children

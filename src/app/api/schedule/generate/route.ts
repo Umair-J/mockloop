@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generatePairings } from "@/lib/scheduling";
+import { computeNextSessionTime } from "@/lib/google-calendar";
 
 export async function POST() {
   try {
@@ -20,7 +21,7 @@ export async function POST() {
     // Get active users
     const users = await prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, timezone: true },
     });
 
     if (users.length < 2) {
@@ -47,6 +48,17 @@ export async function POST() {
       }))
     );
 
+    // Compute session time for preview
+    const config = await prisma.scheduleConfig.findFirst();
+    const sessionTime = config
+      ? computeNextSessionTime(
+          config.preferredDay,
+          config.preferredTime,
+          config.sessionDurationMinutes,
+          config.timezone
+        )
+      : null;
+
     return NextResponse.json({
       pairings: pairings.map((p) => ({
         userA: p.userA,
@@ -57,6 +69,13 @@ export async function POST() {
       totalUsers: users.length,
       paired: pairings.length * 2,
       sittingOut: users.length - pairings.length * 2,
+      sessionTime: sessionTime
+        ? {
+            startTime: sessionTime.startTime,
+            endTime: sessionTime.endTime,
+            configTimezone: config!.timezone,
+          }
+        : null,
     });
   } catch (error) {
     console.error("POST /api/schedule/generate error:", error);
