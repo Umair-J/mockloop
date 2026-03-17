@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum CommentType {
+  STRENGTH
+  WEAKNESS
+  SUGGESTION
+  GENERAL
+}
+
+enum ScheduleCadence {
+  WEEKLY
+  BIWEEKLY
+}
+
+enum PairingAlgorithm {
+  ROUND_ROBIN
+  RANDOM_NO_REPEAT
+}
+
+enum SessionRole {
+  INTERVIEWER
+  INTERVIEWEE
+}
+
+model AllowedEmail {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  addedBy   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("allowed_emails")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  role      UserRole @default(MEMBER)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // NextAuth required fields
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  accounts      Account[]
+  sessions      AuthSession[]
+
+  // App relations
+  interviewerSessions Session[]            @relation("interviewer")
+  intervieweeSessions Session[]            @relation("interviewee")
+  comments            InterviewerComment[]
+  pairingsAsA         PairingHistory[]     @relation("userA")
+  pairingsAsB         PairingHistory[]     @relation("userB")
+
+  @@map("users")
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model AuthSession {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// App models
+model Session {
+  id               String           @id @default(uuid())
+  interviewerId    String           @map("interviewer_id")
+  intervieweeId    String           @map("interviewee_id")
+  sessionDate      DateTime         @map("session_date")
+  recordingFileKey String?          @map("recording_file_key")
+  transcriptStatus ProcessingStatus @default(PENDING) @map("transcript_status")
+  analysisStatus   ProcessingStatus @default(PENDING) @map("analysis_status")
+  meetLink         String?          @map("meet_link")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  interviewer User               @relation("interviewer", fields: [interviewerId], references: [id])
+  interviewee User               @relation("interviewee", fields: [intervieweeId], references: [id])
+  transcript  Transcript?
+  analysis    AiAnalysis?
+  comments    InterviewerComment[]
+  pairing     PairingHistory?
+
+  @@map("sessions")
+}
+
+model Transcript {
+  id              String   @id @default(uuid())
+  sessionId       String   @unique @map("session_id")
+  content         Json     // Array of {speaker: string, start_time: float, end_time: float, text: string}
+  wordCount       Int      @map("word_count")
+  durationSeconds Int      @map("duration_seconds")
+  whisperModel    String   @default("large-v3") @map("whisper_model")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("transcripts")
+}
+
+model AiAnalysis {
+  id              String   @id @default(uuid())
+  sessionId       String   @unique @map("session_id")
+  scores          Json     // {star_structure: number, clarity: number, depth: number, confidence: number, strategic_thinking: number, active_listening: number}
+  strengths       Json     // [{text: string, evidence: string, timestamp_range?: string}]
+  weaknesses      Json     // [{text: string, evidence: string, timestamp_range?: string}]
+  recommendations Json     // [{text: string, priority: "high"|"medium"|"low"}]
+  overallSummary  String   @map("overall_summary") @db.Text
+  claudeModel     String   @map("claude_model")
+  promptVersion   String   @map("prompt_version")
+  rawResponse     Json?    @map("raw_response")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analyses")
+}
+
+model InterviewerComment {
+  id               String      @id @default(uuid())
+  sessionId        String      @map("session_id")
+  authorId         String      @map("author_id")
+  timestampSeconds Int?        @map("timestamp_seconds")
+  sectionLabel     String?     @map("section_label")
+  commentText      String      @map("comment_text") @db.Text
+  commentType      CommentType @default(GENERAL) @map("comment_type")
+  isFinalized      Boolean     @default(false) @map("is_finalized")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@map("interviewer_comments")
+}
+
+model ScheduleConfig {
+  id                     String           @id @default(uuid())
+  cadence                ScheduleCadence  @default(BIWEEKLY)
+  preferredDay           String           @default("Saturday") @map("preferred_day")
+  preferredTime          String           @default("10:00") @map("preferred_time") // HH:MM format
+  sessionDurationMinutes Int              @default(60) @map("session_duration_minutes")
+  pairingAlgorithm       PairingAlgorithm @default(ROUND_ROBIN) @map("pairing_algorithm")
+  lastRunDate            DateTime?        @map("last_run_date")
+  isActive               Boolean          @default(true) @map("is_active")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+
+  @@map("schedule_config")
+}
+
+model PairingHistory {
+  id            String      @id @default(uuid())
+  userAId       String      @map("user_a_id")
+  userBId       String      @map("user_b_id")
+  sessionId     String?     @unique @map("session_id")
+  scheduledDate DateTime    @map("scheduled_date")
+  roleA         SessionRole @map("role_a")
+  roleB         SessionRole @map("role_b")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  userA   User     @relation("userA", fields: [userAId], references: [id])
+  userB   User     @relation("userB", fields: [userBId], references: [id])
+  session Session? @relation(fields: [sessionId], references: [id])
+
+  @@map("pairing_history")
+}
