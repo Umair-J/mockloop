@@ -54,7 +54,14 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(interviewSession);
+    return NextResponse.json({
+      ...interviewSession,
+      _viewer: {
+        role: session.user.role,
+        isAdmin,
+        isParticipant,
+      },
+    });
   } catch (error) {
     console.error("GET /api/sessions/[id] error:", error);
     return NextResponse.json(

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import TranscriptViewer from "@/components/sessions/TranscriptViewer";
+import AnalysisPanel from "@/components/sessions/AnalysisPanel";
 
 interface SessionDetail {
   id: string;
@@ -24,7 +25,28 @@ interface SessionDetail {
     durationSeconds: number;
     whisperModel: string;
   } | null;
-  analysis: unknown | null;
+  analysis: {
+    scores: {
+      star_structure: number;
+      clarity: number;
+      depth: number;
+      confidence: number;
+      strategic_thinking: number;
+      active_listening: number;
+    };
+    strengths: Array<{ text: string; evidence: string; timestamp_range?: string }>;
+    weaknesses: Array<{ text: string; evidence: string; timestamp_range?: string }>;
+    recommendations: Array<{ text: string; priority: "high" | "medium" | "low" }>;
+    overallSummary: string;
+    claudeModel: string;
+    promptVersion: string;
+    createdAt: string;
+  } | null;
+  _viewer: {
+    role: string;
+    isAdmin: boolean;
+    isParticipant: boolean;
+  };
   comments: Array<{
     id: string;
     commentText: string;
@@ -192,18 +214,14 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      {/* AI Analysis placeholder (Phase 3) */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-700">AI Analysis</h2>
-        </div>
-        <div className="p-4">
-          <div className="text-center text-gray-400 text-sm py-8">
-            {session.analysisStatus === "COMPLETED"
-              ? "Analysis available (display coming in Phase 3)."
-              : "AI analysis will be available after the transcript is processed."}
-          </div>
-        </div>
+      {/* AI Analysis */}
+      <div className="mb-6">
+        <AnalysisPanel
+          sessionId={session.id}
+          analysis={session.analysis}
+          analysisStatus={session.analysisStatus}
+          isAdmin={session._viewer?.isAdmin ?? false}
+        />
       </div>
 
       {/* Comments placeholder (Phase 4) */}
